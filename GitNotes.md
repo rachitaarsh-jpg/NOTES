@@ -151,3 +151,11 @@ If you accidentally pushed something:
 git reset --hard HEAD~1
 git push --force origin main
 ```
+
+
+
+##To stop Git from showing untracked files repeatedly, add them to .gitignore:
+
+``` echo "filename" >> .gitignore
+Then:
+git add .gitignore && git commit -m "Ignore personal files"
