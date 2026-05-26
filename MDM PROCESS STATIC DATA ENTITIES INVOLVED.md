@@ -1,6 +1,6 @@
 **MDM PROCESS STATIC DATA ENTITIES INVOLVED**
 
-**Problem Statement: Find out Entities and fields from the MDM Processing phase which have static data like ENUMS and Types**
+***PROBLEM STATEMENT:-*** **Find and list the entities and their fields where we create the type or enum data during the order import process in OMS. The purpose of the field, the list of the types/enums we have for these fields, and scenarios when each type/enum is used.**
 
 ***How did I Trace The Code ?***
 
@@ -19,66 +19,55 @@
    `ShopifyOrderServices.sync#ShopifyOrder`  
 9. Therefore, this is the service ultimately responsible for handling Shopify order synchronization and further processing.
 
-SQSOrderImport.xml  
-         │  
+    SQSOrderImport.xml  
+        │  
         ▼  
-Calls Service:  
+    Calls Service:  
 upload\#DataManagerFile (UtilityServices)  
-         │  
+        │  
         ▼  
 Go to UtilityServices  
-         │  
+        │  
         ▼  
 Trace service implementation  
-         │  
+        │  
         ▼  
 Check \<actions\> logic  
-         │  
+        │  
         ▼  
 Fetch config from:  
 DataManagerConfig Entity  
-         │  
+        │  
         ▼  
 Open localhost:8080 → Entity List  
-         │  
+        │  
         ▼  
 Pass configId from SQSOrderImport.xml  
-         │  
+        │  
         ▼  
 Retrieved Config:  
 SYNC\_SHOPIFY\_ORDER  
-         │  
+        │  
         ▼  
 Mapped Service:  
 ShopifyOrderServices.sync\#ShopifyOrder
 
-| Entity | Field | Example Value |  Found In |
-| :---: | :---: | :---: | ----- |
-| OrderHeader | statusId | ORDER\_CREATED | PrepareTransformedShopifyOrderPayload.groovy |
-| Order Identification | orderIdentificationTypeId | SHOPIFY\_ORD\_NO | PrepareTransformedShopifyOrderPayload.groovy |
-| OrderItemShipGroup | ShipmentMethodTypedId | STANDARD/POS\_COMPLETED | PrepareTransformedShopifyOrderPayload.groovy |
-| OrderAdjustment | orderAdjustmentTypeId | DONATION\_ADJUSTMENT | PrepareTransformedShopifyOrderPayload.groovy |
-| PartyIdentification | customerIdentification | SHOPIFY\_CUST\_ID | PrepareTransformedShopifyOrderPayload.groovy |
-| ProductStoreSetting | settingTypeEnumId | SAVE\_BILL\_TO\_INF | PrepareTransformedShopifyOrderPayload.groovy |
-| ProductStoreShipment (VIEW) | roleTypeId  | CARRIER | PrepareTransformedShopifyOrderPayload.groovy |
-| ProductStoreShipment (VIEW) | productStoreShipMethId | NEXT\_DAY\_SHIP | PrepareTransformedShopifyOrderPayload.groovy |
-| ShopifyShopTypeMapping | mappedTypeId | SHOP\_FULL\_SRVC\_ALLOC | PrepareTransformedShopifyOrderPayload.groovy |
-| OrderItem | statusId | ITEM\_COMPLETED | PrepareTransformedShopifyOrderPayload.groovy |
-| ContactMechPurposeType / FacilityContactDetailByPurpose | contactMechPurposeTypeId | PRIMARY\_LOCATION | PrepareTransformedShopifyOrderPayload.groovy |
-| ProductStore | productIdentifierEnumId | SHOPIFY\_PRODUCT\_SKU | PrepareTransformedShopifyOrderPayload |
-| OrderAjdustment | itemTaxAdjustmentType/orderAjdustmentTypeId | SALES\_TAX | PrepareTransformedShopifyOrderPayload.groovy |
-| OrderItemAssocType | orderItemAssocTypeId | EXCHANGE | PrepareTransformedShopifyOrderPayload.groovy |
+| Entity | Field | Static Values |  Found In |
+| ----- | ----- | ----- | ----- |
+| OrderHeader | statusId | ORDER\_CREATEDORDER\_COMPLETED (in case of POS) | PrepareTransformedShopifyOrderPayload.groovy |
+| Order Identification | orderIdentificationTypeId | SHOPIFY\_ORD\_NOSHOPIFY\_ORD\_NAMESHOPIFY\_ORD\_ID | PrepareTransformedShopifyOrderPayload.groovy |
+|  OrderItemShipGroup |  ShipmentMethodTypedId | STANDARD/POS\_COMPLETED STOREPICKUP SHIP\_TO\_STORENEXT\_DAYSECOND\_DAYTHIRD\_DAYNO\_SHIPPING | PrepareTransformedShopifyOrderPayload.groovy |
+|  OrderAdjustment |  orderAdjustmentTypeId | DONATION\_ADJUSTMENTEXT\_PROMO\_ADJUSTMENT(external item level Promotions)EXT\_SHIP\_ADJUSTMENT(external shipping discounts)SHIPPING\_CHARGES(standard shipping charges)SALES\_TAX SHIPPING\_SALES\_TAX | PrepareTransformedShopifyOrderPayload.groovy |
+|  PartyIdentification |  customerIdentification |  SHOPIFY\_CUST\_ID | PrepareTransformedShopifyOrderPayload.groovy |
+|                  OrderItem |                 statusId |            ITEM\_COMPLETED ITEM\_CREATED | PrepareTransformedShopifyOrderPayload.groovy |
+|  ContactMechPurposeType / FacilityContactDetailByPurpose |  contactMechPurposeTypeId | PRIMARY\_LOCATION PRIMARY\_PHONE PRIMARY\_EMAIL  |  PrepareTransformedShopifyOrderPayload.groovy |
+|  ProductStore |  productIdentifierEnumId | SHOPIFY\_PRODUCT\_SKU SHOPIFY\_BARCODE SHOPIFY\_PRODUCT\_ID |  PrepareTransformedShopifyOrderPayload |
+|  OrderItemAssocType |  orderItemAssocTypeId |  EXCHANGE | PrepareTransformedShopifyOrderPayload.groovy |
 | OrderRole | roleTypeId | PLACING\_CUSTOMER | ShopifyOrderServices.xml |
-| OrderPaymentPreference | paymentStatusId | PAYMENT\_REFUNDED | ShopifyOrderServices.xml |
-| OrderPaymentPreference | paymentMethodTypeId | EXT\_SHOP\_OTHR\_GATEWAY | ShopifyOrderServices.xml |
+|  OrderPaymentPreference |  paymentStatusId | PAYMENT\_REFUNDED PAYMENT\_AUTHORISEDPAYMENT\_SETTLEDPAYMENT\_CANCELLED |  ShopifyOrderServices.xml |
+|  OrderPaymentPreference |  paymentMethodTypeId | EXT\_SHOP\_OTHR\_GATEWAY EXT\_SHOP\_VISA EXT\_SHOP\_AMEX EXT\_SHOP\_MASTERCARD EXT\_SHOP\_DISCOVER EXT\_SHOP\_PAYPAL EXT\_SHOP\_AFTRPAY EXT\_SHOP\_KLARNAEXT\_SHOP\_PAY\_INSTALL EXT\_GIFT\_CARD SHOP\_STORE\_CREDIT EXT\_SHOP\_CASH\_ON\_DEL |  ShopifyOrderServices.xml |
 | Party | statusId | PARTY\_ENABLED | ShopifyOrderServices.xml |
-| OrderItemShipGroup | facilityId | \_NA\_ | ShopifyOrderServices.xml |
-| OrderItem | orderItemTypeId | PRODUCT\_ORDER\_ITEM | ShopifyOrderServices.xml |
 | CommunicationEventAndOrder | CommunicationEventTypeId | ORDER\_NOTE | ShopifyOrderServices.xml |
-| SaleOrder (VIEW) | statusId | ITEM\_APPROVED | ShopifyOrderServices.xml |
-| ShipmentItem (VIEW) | ShipmentStatusId | SHIPMENT\_SHIPPED | ShopifyOrderServices.xml |
-| ProductAssocAndForm | ProductTypeIdProductAssocTypeId | MARKETING\_PKG\_PICKPRODUCT\_COMPONENT | ShopifyOrderServices.xml |
-| SystemMessageRemote | internalTypeId | HOTWAX\_SHOPID | ShopifyOrderServices.xml |
 
 ### 
 
