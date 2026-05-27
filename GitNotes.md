@@ -166,4 +166,4 @@ git add .gitignore && git commit -m "Ignore personal files"
     git stash
     git pull origin main
     git stash pop
-```else just go to each component and pull one by one 
+```else just go to each component and pull one by one
