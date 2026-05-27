@@ -159,3 +159,11 @@ git push --force origin main
 ``` echo "filename" >> .gitignore
 Then:
 git add .gitignore && git commit -m "Ignore personal files"
+```
+
+
+##Command To pull from code base HOTWAX of it shows commit error 
+    git stash
+    git pull origin main
+    git stash pop
+```else just go to each component and pull one by one 
