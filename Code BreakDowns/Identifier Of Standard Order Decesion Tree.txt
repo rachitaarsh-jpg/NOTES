@@ -7,7 +7,7 @@
                 │                           │
                NO                          YES
                 │                           │
-                	▼                       ▼
+                ▼                           ▼
      Is Sales Channel =             Order requires
       POS_SALES_CHANNEL?           physical shipping
                 │                           │
@@ -34,12 +34,12 @@
 					    NO                          YES
 						│                           │
 					    ▼                           ▼
-				       Keep Default Values       Example: "Standard"
-				       shipmentMethodTypeId =               │
+				 Keep Default Values           Example: "Standard"
+				 shipmentMethodTypeId =                 │
 					    STANDARD                        ▼
-							      Search ShopifyShopCarrierShipment
-								       Mapping
-								           │
+							            Search ShopifyShopCarrierShipment
+								          Mapping
+								               │
 							 ┌─────────────────┴─────────────────┐
 							 │                                   │
 						    Match Found                        No Match
