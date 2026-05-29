@@ -1,89 +1,90 @@
                             Shopify Order Received
                                       │
-                                     		          ▼
+                                      ▼
                        Is Shipping Address Present?
                                       │
                     ┌─────────────────┴─────────────────┐
                     │                                   │
                    NO                                  YES
                     │                                   │
-                                 ▼                                                          ▼
+                    ▼                                   ▼
             Is POS_SALES_CHANNEL?             Is POS_SALES_CHANNEL?
                     │                                   │
            ┌────────┴────────┐                 ┌────────┴────────┐
            │                 │                 │                 │
           YES               NO                YES               NO
            │                 │                 │                 │
-                  ▼                            ▼                            ▼                            ▼
+           ▼                 ▼                 ▼                 ▼
      Cash Sale Order    Standard Order   Check Fulfillment   Standard Order
      isCashSaleOrder    Processing       Status
          = true                             │
-                                                                         ▼
+                                            ▼
                              Is Fulfillment Status = FULFILLED?
                                              │
                               ┌──────────────┴──────────────┐
                               │                             │
                              YES                           NO
                               │                             │
-                                                  ▼                                                ▼
+                    		  ▼                             ▼
                     Regular POS Order            Mixed Cart POS Order
                                                   isMixedCartPOSOrder=true
                                                              │
-                                                                                                     ▼
-                                       Does Retail Location Exist?
+                                                             ▼
+                                       			Does Retail Location Exist?
                                                              │
                                         ┌────────────────────┴───────────────────┐
                                         │                                        │
                                        NO                                       YES
                                         │                                        │
-                                                                   ▼                                                                  ▼
+                                        ▼                                        ▼
                               Use Default Facility                    SENDSALE Tag Present?
                                                                              │
                                                         ┌────────────────────┴───────────────────┐
                                                         │                                        │
                                                        YES                                      NO
                                                         │                                        │
-                                                                                             ▼                                                                  ▼
+                                                        |                                     	 |
+														▼                                        ▼
                                              Use Default Facility                Get Shopify Location ID
                                                                                            │
-                                                                                                                                                       ▼
+                                                                                           |                                                            																						   ▼
                                                                           Resolve Location Facility
                                                                                            │
-                                                                                                             			     ▼
-						                                      facilityId = mapped facility
-						                                      OR defaultFacilityId
-						                                      OR "_NA_"
+                                                                                           ▼
+											                                      facilityId = mapped facility
+											                                      OR defaultFacilityId
+											                                      OR "_NA_"
                                                                                            │
-                                                                                          	 				     ▼
+                                                                                           ▼
                                                                         	  Process Split Items
                                                                                            │
-                                                                                                                                                        ▼
-                                                                   		Is Split Item FULFILLED?
-                                                                                             │
-				                                        ┌────────────────────┴───────────────────┐
-				                                        │                                        │
-				                                       YES                                      NO
-				                                        │                                        │
-				                                        		▼                                        		 ▼
-                                          Shipment Method = POS_COMPLETED        		Is Shipment Method STOREPICKUP ?
-                                          Carrier = "_NA_"                       
-                                          Fulfilled by Store                              			    │
-                                                                			 ┌──────────────────────────┴──────────────────────┐
-                                                                	 		 │                                                 │
-						                                        YES                                               NO
-						                                         │                                                 │
-						                                         		  ▼                                                                                 ▼
-						                               Store Pickup Flow                           Has Preselected Facility?
-						                                                                                     │
-						                                                             ┌───────────────────────┴──────────────────┐
-						                                                             │                                          │
-						                                                            YES                                        NO
-						                                                             │                                          │
-						                                                             			        ▼                                                                      ▼
-						                                                 Use Preselected Facility               Route to Default Warehouse
-						                                                                                          (defaultFacilityId)
+                                                                                           |                                                             																						   ▼
+		                                                                   		Is Split Item FULFILLED?
+                                                                                            │
+								                                        ┌────────────────────┴───────────────────┐
+								                                        │                                        │
+								                                       YES                                      NO
+								                                        │                                        │
+				                                        				▼                                        ▼
+				                                          Shipment Method = POS_COMPLETED        		Is Shipment Method STOREPICKUP ?
+				                                          Carrier = "_NA_"                       
+				                                          Fulfilled by Store                              			    │
+				                                                                			 ┌──────────────────────────┴──────────────────────┐
+								                                                             │                                                 │
+														                                    YES                                                NO
+														                                     │                                                 │
+														                                     ▼ 			                                       ▼
+						                                                            Store Pickup Flow                       Has Preselected Facility?
 						                                                                                                     │
-						                                                                                                     					        ▼
+										                                                             ┌───────────────────────┴──────────────────┐
+										                                                             │                                          │
+										                                                            YES                                        NO
+										                                                             │                                          │
+										                                                             ▼ 									        ▼
+						                                                            Use Preselected Facility               Route to Default Warehouse
+						                                                                                                   (defaultFacilityId)
+						                                                                                                     │
+						                                                                                                     |					        																															 ▼
 						                                                                                          Send Sale Fulfillment
 						                                                                                          Warehouse Picks Item
 						                                                                                          Warehouse Packs Item
