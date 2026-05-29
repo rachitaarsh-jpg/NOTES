@@ -1,39 +1,39 @@
                     Shopify Order Received
                               │
-                                                  ▼
+                              ▼
               Is shippingAddress present?
                               │
                 ┌─────────────┴─────────────┐
                 │                           │
                NO                          YES
                 │                           │
-                	▼                                            ▼
+                	▼                       ▼
      Is Sales Channel =             Order requires
       POS_SALES_CHANNEL?           physical shipping
                 │                           │
         ┌───────┴───────┐                   |
-        │               │		    |
+        │               │		            |
        YES             NO                   |
         │               │                   | 
-             ▼                         ▼                   |
+        ▼               ▼                   |
   Cash Sale Order    Continue               |
   shipmentMethod =                          |
-   POS_COMPLETED			    |
- carrierPartyId =			    |
-      "_NA_"				    |
-                   			                    ▼
-
-							      
-				 Extract shippingLines[0].title
-					    │
-			          		       ▼
+   POS_COMPLETED			                |
+ carrierPartyId =			                |
+      "_NA_"				                |
+											|
+											|
+                   			                ▼
+							 Extract shippingLines[0].title
+					              			│
+			          		                ▼
 					  Is shipmentMethodDesc available?
 							      │
 						┌─────────────┴─────────────┐
 						│                           │
-					       NO                          YES
+					    NO                          YES
 						│                           │
-					             ▼                                             ▼
+					    ▼                           ▼
 				       Keep Default Values       Example: "Standard"
 				       shipmentMethodTypeId =               │
 					    STANDARD                        ▼
@@ -44,15 +44,15 @@
 							 │                                   │
 						    Match Found                        No Match
 							 │                                   │
-						       	  ▼                                                         ▼
-					  Assign mapped shipmentMethodTypeId               Search
+						     ▼                                   ▼
+					  Assign mapped shipmentMethodTypeId        Search
 					  Assign mapped carrierPartyId              ProductStoreShipmentMethView
 							 │                                   │
 							 │                     ┌─────────────┴─────────────┐
 							 │                     │                           │
 							 │                 Match Found                 No Match
 							 │                     │                           │
-							 │                     ▼                                            ▼
+							 │                     ▼                           ▼
 							 │      Update shipmentMethodTypeId           Keep Default
 							 │                                                STANDARD
 							 ▼
@@ -61,11 +61,11 @@
 							 ▼
 					    Is "pickupstore" attribute found?
 							 │
-					      ┌──────────┴──────────┐
-					      │                     │
-					     YES                   NO
-					      │                     │
-					          ▼                                   ▼
-					BOPIS / Store Pickup    Standard Shipping Order
-					Routing Logic           Continue with Shipping
-								Fulfillment Flow
+				  ┌──────────┴──────────┐
+				  │                     │
+				  YES                   NO
+				   │                     │
+		           ▼                     ▼
+			BOPIS / Store Pickup      Standard Shipping Order
+				Routing Logic         Continue with Shipping
+								      Fulfillment Flow
