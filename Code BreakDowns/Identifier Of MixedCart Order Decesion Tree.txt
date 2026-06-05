@@ -1,0 +1,81 @@
+                                    Order Received
+                                           │
+                                           ▼
+                            Process Each Line Item
+                               (lineItemsRaw.each)
+                                           │
+                                           ▼
+                                 Create Split Item
+                                   (splitType)
+                                           │
+                                           ▼
+                            Is Mixed Cart POS Order?
+                                           │
+                 ┌─────────────────────────┴─────────────────────────┐
+                 │                                                   │
+                NO                                                  YES
+                 │                                                   │
+                 ▼                                                   ▼
+      Use Existing Item Routing Logic                  Is splitType = "FULFILLED"?
+                                                                   │
+                                      ┌────────────────────────────┴────────────────────────────┐
+                                      │                                                         │
+                                     YES                                                       NO
+                                      │                                                         │
+                                      ▼                                                         ▼
+                     Customer Already Took Item                             Is Shipment Method = STOREPICKUP?
+                                      │                                                         │
+                                      │                                 ┌───────────────────────┴───────────────────────┐
+                                      │                                 │                                               │
+                                      ▼                                YES                                             NO
+                  Shipment Method = POS_COMPLETED                       │                                               │
+                  Carrier = _NA_                                        ▼                                               ▼
+                  From Facility = Store Facility             Keep Pickup Facility                         Has Preselected Facility?
+                                      │                                                                       │
+                                      │                                         ┌─────────────────────────────┴─────────────────────────────┐
+                                      │                                         │                                                           │
+                                      │                                        YES                                                         NO
+                                      │                                         │                                                           │
+                                      ▼                                         ▼                                                           ▼
+                              Continue Processing                 Keep Existing Facility                           Route to Default Warehouse
+                                                                                                                    (defaultFacilityId)
+
+                 └───────────────────────────────────────────────┬───────────────────────────────────────────────┘
+                                                                 │
+                                                                 ▼
+                                                 Normalize / Resolve Facility
+                                                                 │
+                                                                 ▼
+                                                 Build Ship Group Key
+
+                          shipGroupKey =
+                          Facility | Shipment Method | Carrier | Split Type
+
+                                                                 │
+                                                                 ▼
+                                                Does This Bucket Already Exist?
+                                                                 │
+                                      ┌──────────────────────────┴──────────────────────────┐
+                                      │                                                     │
+                                     YES                                                   NO
+                                      │                                                     │
+                                      ▼                                                     ▼
+                         Add Item To Existing Bucket                          Create New Bucket
+                                      │                                                     │
+                                      └──────────────────────┬──────────────────────────────┘
+                                                             │
+                                                             ▼
+                                                   Add Item To Bucket
+                                                             │
+                                                             ▼
+                                                  More Items Remaining?
+                                                             │
+                                      ┌──────────────────────┴──────────────────────┐
+                                      │                                             │
+                                     YES                                           NO
+                                      │                                             │
+                                      ▼                                             ▼
+                            Process Next Line Item                     Ship Groups Finalized
+                                                                                 │
+                                                                                 ▼
+                                                                    OMS Creates Ship Groups
