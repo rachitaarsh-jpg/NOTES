@@ -24,6 +24,259 @@ the request is handled by a subclass of `EntityFindBase` (typically `EntityFindI
 
 Instead, each method call builds the query internally by storing its state.
 
+
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{------------------------------------- NOTE
+
+
+# What Does "Each Method Call Builds the Query by Storing Its State" Mean?
+
+## Overview
+
+One of the most important concepts in Moqui's `EntityFindBase` is that **query methods do not execute SQL immediately**.
+
+Instead, every method call simply **stores information** about the query inside the `EntityFindBase` object.
+
+This accumulated information is called the **query state**.
+
+Only when an execution method such as `.list()` or `.one()` is called does Moqui use this stored state to generate and execute SQL.
+
+---
+
+# Example
+
+Suppose we write the following query:
+
+```groovy
+def products = ec.entity.find("assignment.demo.ProductDemo")
+        .condition("isVirtual", "N")
+        .condition("productTypeId", "FINISHED_GOOD")
+        .selectField("productId")
+        .selectField("internalName")
+        .orderBy("productId")
+        .limit(10)
+```
+
+Although this looks like we're building SQL, **no SQL has been generated yet**.
+
+Instead, `EntityFindBase` stores each piece of information internally.
+
+---
+
+# Step-by-Step State Accumulation
+
+## Step 1 — `.find("ProductDemo")`
+
+Internally:
+
+```text
+entityName = "assignment.demo.ProductDemo"
+```
+
+Only the entity name is stored.
+
+✅ SQL Generated? **No**
+
+---
+
+## Step 2 — `.condition("isVirtual", "N")`
+
+Internally:
+
+```text
+simpleAndMap = {
+    isVirtual : "N"
+}
+```
+
+The first condition is stored.
+
+✅ SQL Generated? **No**
+
+---
+
+## Step 3 — `.condition("productTypeId", "FINISHED_GOOD")`
+
+Internally:
+
+```text
+simpleAndMap = {
+    isVirtual : "N",
+    productTypeId : "FINISHED_GOOD"
+}
+```
+
+The second condition is added.
+
+✅ SQL Generated? **No**
+
+---
+
+## Step 4 — `.selectField("productId")`
+
+Internally:
+
+```text
+fieldsToSelect = [
+    "productId"
+]
+```
+
+The first selected field is stored.
+
+✅ SQL Generated? **No**
+
+---
+
+## Step 5 — `.selectField("internalName")`
+
+Internally:
+
+```text
+fieldsToSelect = [
+    "productId",
+    "internalName"
+]
+```
+
+The second selected field is added.
+
+✅ SQL Generated? **No**
+
+---
+
+## Step 6 — `.orderBy("productId")`
+
+Internally:
+
+```text
+orderByFields = [
+    "productId"
+]
+```
+
+The sorting information is stored.
+
+✅ SQL Generated? **No**
+
+---
+
+## Step 7 — `.limit(10)`
+
+Internally:
+
+```text
+limit = 10
+```
+
+Pagination information is stored.
+
+✅ SQL Generated? **No**
+
+---
+
+# Final Internal State
+
+After all the method calls, `EntityFindBase` has collected everything needed to build the query.
+
+Conceptually, its internal state looks like this:
+
+```text
+entityName = ProductDemo
+
+conditions =
+{
+    isVirtual = "N",
+    productTypeId = "FINISHED_GOOD"
+}
+
+fieldsToSelect =
+[
+    productId,
+    internalName
+]
+
+orderBy =
+[
+    productId
+]
+
+limit = 10
+```
+
+Notice that **this is only stored information**.
+
+The database has **not** been contacted yet.
+
+---
+
+# When is SQL Actually Generated?
+
+SQL is generated **only when an execution method is called**, such as:
+
+```groovy
+.list()
+```
+
+or
+
+```groovy
+.one()
+```
+
+At that point, `EntityFindBase` has all the information required to execute the query.
+
+The execution flow is:
+
+```text
+Stored Query State
+        │
+        ▼
+Authorization Check
+        │
+        ▼
+L1 Transaction Cache
+        │
+        ▼
+L2 Entity Cache
+        │
+        ▼
+(Cache Miss)
+        │
+        ▼
+Build AST
+        │
+        ▼
+EntityFindBuilder
+        │
+        ▼
+Generate SQL
+        │
+        ▼
+Execute SQL
+        │
+        ▼
+Return Results
+```
+
+---
+
+# Why Does Moqui Work This Way?
+
+This follows the **Builder Pattern**.
+
+Instead of executing every method immediately, the framework first gathers all the necessary information and then performs the work only once.
+
+### Benefits
+
+* Prevents unnecessary SQL generation.
+* Makes query construction flexible.
+* Supports caching before database access.
+* Enables optimization of query conditions.
+* Separates query construction from query execution.
+
+
+ --------------------------------------------}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
 ### Stores Query Conditions
 
 * `WHERE` conditions
