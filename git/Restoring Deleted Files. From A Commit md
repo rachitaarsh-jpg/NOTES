@@ -1,0 +1,230 @@
+# Restoring Deleted Files or Directories from a Previous Commit
+
+## Command
+
+```bash
+git restore --source=d9c4d87^ "Assignments/Module 8"
+```
+
+## What does this command do?
+
+This command restores the **`Assignments/Module 8`** directory from a previous commit into your current working directory **without changing your commit history**.
+
+It is useful when you accidentally delete files or a directory and want to bring them back.
+
+---
+
+# Breaking Down the Command
+
+## 1. `git restore`
+
+```bash
+git restore
+```
+
+- Restores files from another commit or from the index.
+- Does **not** create a new commit.
+- Does **not** modify Git history.
+- Only changes your working directory.
+
+---
+
+## 2. `--source=d9c4d87^`
+
+```bash
+--source=d9c4d87^
+```
+
+This specifies **which commit** to restore the files from.
+
+### What is `d9c4d87`?
+
+It is the commit hash.
+
+Example:
+
+```
+d9c4d87  Delete Assignments/Module 8 directory
+```
+
+---
+
+## 3. What does `^` mean?
+
+The `^` means:
+
+> **The parent of this commit**
+
+If your history looks like:
+
+```
+A ---- B ---- C(Delete Folder) ---- D ---- E (HEAD)
+              ^
+           d9c4d87
+```
+
+Then
+
+```
+d9c4d87
+```
+
+represents:
+
+```
+Delete Folder
+```
+
+while
+
+```
+d9c4d87^
+```
+
+represents:
+
+```
+B (the commit before the deletion)
+```
+
+So Git restores the files **as they existed before they were deleted**.
+
+---
+
+## 4. `"Assignments/Module 8"`
+
+This is the path you want to restore.
+
+Git restores **only this directory** instead of the entire repository.
+
+---
+
+# What Happens Internally?
+
+Suppose history looks like:
+
+```
+Commit A
+│
+├── Module 8
+│     ├── File1.md
+│     ├── File2.md
+│     └── File3.md
+│
+Commit B
+│
+└── Delete Module 8
+```
+
+Running
+
+```bash
+git restore --source=B^ "Assignments/Module 8"
+```
+
+Git:
+
+1. Goes to Commit A.
+2. Finds the `Assignments/Module 8` directory.
+3. Copies its contents into your current working directory.
+4. Does **not** change your current branch or commit history.
+
+---
+
+# Verify the Restoration
+
+After restoring, check the status:
+
+```bash
+git status
+```
+
+Example output:
+
+```
+Changes not staged for commit:
+
+new file:
+Assignments/Module 8/File1.md
+Assignments/Module 8/File2.md
+Assignments/Module 8/File3.md
+```
+
+This means the files are back in your working directory but are not yet committed.
+
+---
+
+# Save the Restoration
+
+Stage the restored files:
+
+```bash
+git add .
+```
+
+Create a new commit:
+
+```bash
+git commit -m "Restore Module 8 directory"
+```
+
+Push the commit to GitHub:
+
+```bash
+git push
+```
+
+Now the restored files become part of the repository history again.
+
+---
+
+# Why Use `git restore` Instead of `git reset`?
+
+`git restore`
+
+- Restores specific files or folders.
+- Keeps commit history intact.
+- Safe for shared branches.
+- Recommended when only certain files need to be recovered.
+
+`git reset`
+
+- Moves the branch pointer.
+- Can remove commits from history.
+- May require a force push if already pushed.
+- Not recommended for shared repositories unless you understand the implications.
+
+---
+
+# Summary
+
+Command:
+
+```bash
+git restore --source=d9c4d87^ "Assignments/Module 8"
+```
+
+Meaning:
+
+- `git restore` → Restore files.
+- `--source=d9c4d87^` → Restore from the parent of commit `d9c4d87` (the state before deletion).
+- `"Assignments/Module 8"` → Restore only this directory.
+
+Then save the changes:
+
+```bash
+git status
+git add .
+git commit -m "Restore Module 8 directory"
+git push
+```
+
+---
+
+# Key Takeaways
+
+- `^` refers to the **parent commit**.
+- `git restore` recovers files **without changing Git history**.
+- Restored files appear as working directory changes.
+- Use `git add` and `git commit` to make the restoration permanent.
+- This is the safest way to recover accidentally deleted files or directories from a previous commit.
