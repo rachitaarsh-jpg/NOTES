@@ -529,28 +529,334 @@ flowchart LR
 
 ## 4. Data Model & Entity Relationships
 
-```mermaid
-erDiagram
-    ShopifyConfig ||--|| ShopifyShop : "has"
-    ShopifyShop ||--o{ ShopifyShopProduct : "contains"
-    ShopifyShopProduct ||--o{ ShopifyMetafield : "has"
+> All field names and keys below are sourced from the actual entity XML definitions in the codebase:
+> - [entitymodel.xml](file:///home/rachitaarsh/WorkSpace/Sand-box/ofbiz-oms/applications/shopify-connector/entitydef/entitymodel.xml) (Shopify entities)
+> - [entitymodel_view.xml](file:///home/rachitaarsh/WorkSpace/Sand-box/ofbiz-oms/applications/shopify-connector/entitydef/entitymodel_view.xml) (Shopify view entities)
+> - [entitymodel_view.xml](file:///home/rachitaarsh/WorkSpace/Sand-box/ofbiz-oms/applications/hwmapps/entitydef/entitymodel_view.xml#L7709-L7724) (ProductAssocAndCategoryMember view entity)
 
-    ProductStore ||--|{ ProductStoreCatalog : "uses"
-    ProductStoreCatalog ||--|| ProdCatalog : "references"
-    ProdCatalog ||--|{ ProdCatalogCategory : "contains"
-    ProdCatalogCategory ||--|| ProductCategory : "maps to"
-    ProductCategory ||--|{ ProductCategoryMember : "has members"
+---
 
-    Product ||--|{ ProductAssoc : "has variants"
-    ProductAssoc }|--|| Product : "variant of"
-    Product ||--|{ ProductCategoryMember : "belongs to"
+### 4.1 Shopify Connector Entities
 
-    SystemProperty {
-        string systemResourceId
-        string systemPropertyId
-        string systemPropertyValue
-    }
+#### `ShopifyConfig` — PK: `shopifyConfigId`
 ```
+┌──────────────────────────────────────────────────────────────────┐
+│  ShopifyConfig                                                    │
+├──────────────────────┬───────────────┬───────────────────────────┤
+│  Field               │ Type          │ Notes                     │
+├──────────────────────┼───────────────┼───────────────────────────┤
+│  shopifyConfigId  🔑 │ id            │ PRIMARY KEY               │
+│  shopifyConfigName   │ name          │                           │
+│  accessScopeEnumId   │ id-ne         │ FK → Enumeration          │
+│  apiVersion          │ very-short    │                           │
+│  productStoreId      │ id            │ FK → ProductStore         │
+│  shopId              │ id            │ FK → ShopifyShop          │
+│  webSiteId           │ id            │ FK → WebSite              │
+│  apiUrl              │ value         │ encrypted                 │
+│  accessToken         │ long-varchar  │ encrypted                 │
+│  sharedSecret        │ long-varchar  │ encrypted (webhook HMAC)  │
+└──────────────────────┴───────────────┴───────────────────────────┘
+  🔗 Relations:
+     → ShopifyShop  (one)   via shopId
+     → ProductStore (one)   via productStoreId
+```
+
+#### `ShopifyShop` — PK: `shopId`
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  ShopifyShop                                                      │
+├──────────────────────┬───────────────┬───────────────────────────┤
+│  Field               │ Type          │ Notes                     │
+├──────────────────────┼───────────────┼───────────────────────────┤
+│  shopId           🔑 │ id            │ PRIMARY KEY               │
+│  shopifyShopId       │ id-long       │ Shopify's numeric shop ID │
+│  productStoreId      │ id            │ FK → ProductStore         │
+│  name                │ name          │ Shop display name         │
+│  myshopifyDomain     │ id-vlong      │ e.g. store.myshopify.com  │
+│  primaryLocationId   │ id-long       │ Default Shopify location  │
+│  currency            │ id            │ Shop currency code        │
+│  isEnabled           │ indicator     │ Y/N active flag           │
+└──────────────────────┴───────────────┴───────────────────────────┘
+  🔗 Relations:
+     → ProductStore (one)  via productStoreId
+     ← ShopifyConfig (many) via shopId
+     ← ShopifyShopProduct (many) via shopId
+```
+
+#### `ShopifyShopProduct` — PK: `(shopId, shopifyProductId)`
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  ShopifyShopProduct                                               │
+├─────────────────────────┬───────────┬───────────────────────────┤
+│  Field                  │ Type      │ Notes                     │
+├─────────────────────────┼───────────┼───────────────────────────┤
+│  shopId              🔑 │ id        │ PK + FK → ShopifyShop     │
+│  shopifyProductId    🔑 │ id-long   │ PK (Shopify variant GID)  │
+│  productId              │ id        │ FK → Product (OMS SKU)    │
+│  shopifyInventoryItemId │ id-long   │ Shopify inventory item    │
+├─────────────────────────┴───────────┴───────────────────────────┤
+│  INDEX: IDX_SHOP_INV_ID on (shopId, shopifyInventoryItemId)     │
+└─────────────────────────────────────────────────────────────────┘
+  🔗 Relations:
+     → ShopifyShop (one)  via shopId
+     → Product    (one)   via productId
+```
+
+#### `ShopifyMetafield` — PK: `metafieldId`
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  ShopifyMetafield                                                 │
+├──────────────────────┬───────────────┬───────────────────────────┤
+│  Field               │ Type          │ Notes                     │
+├──────────────────────┼───────────────┼───────────────────────────┤
+│  metafieldId      🔑 │ id            │ PRIMARY KEY               │
+│  namespace           │ id            │ e.g. "HC_PREORDER"        │
+│  metaKey             │ short-varchar │ e.g. "PROMISE_DATE"       │
+│  metavalue           │ very-long     │ JSON string value         │
+│  metatype            │ short-varchar │ e.g. "json"               │
+│  ownerResource       │ short-varchar │ Owner type                │
+└──────────────────────┴───────────────┴───────────────────────────┘
+```
+
+#### `ShopifyShopProductMetafield` — PK: `(shopifyProductId, metafieldId)`
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  ShopifyShopProductMetafield  (Junction table)                    │
+├──────────────────────┬───────────────┬───────────────────────────┤
+│  Field               │ Type          │ Notes                     │
+├──────────────────────┼───────────────┼───────────────────────────┤
+│  shopifyProductId 🔑 │ id-long       │ PK + FK → ShopifyShopProd │
+│  metafieldId      🔑 │ id            │ PK + FK → ShopifyMetafield│
+└──────────────────────┴───────────────┴───────────────────────────┘
+  🔗 Relations:
+     → ShopifyMetafield   (one)  via metafieldId
+     → ShopifyShopProduct (many) via shopifyProductId
+```
+
+---
+
+### 4.2 OFBiz Core Entities (Used by the Service)
+
+#### `ProductStore` → `ProductStoreCatalog` → `ProdCatalog`
+```
+ProductStore                    ProductStoreCatalog              ProdCatalog
+┌─────────────────────┐        ┌─────────────────────────┐     ┌──────────────────┐
+│ productStoreId  🔑  │───1:N──│ productStoreId  🔑      │     │ prodCatalogId 🔑 │
+│ storeName           │        │ prodCatalogId   🔑      │──N:1│ catalogName      │
+│ ...                 │        │ fromDate        🔑      │     │ ...              │
+└─────────────────────┘        │ thruDate                │     └──────────────────┘
+                               │ sequenceNum             │
+                               └─────────────────────────┘
+```
+
+#### `ProdCatalogCategory` → `ProductCategory`
+```
+ProdCatalogCategory                              ProductCategory
+┌──────────────────────────────────────┐        ┌───────────────────────────┐
+│ prodCatalogId            🔑         │        │ productCategoryId  🔑    │
+│ productCategoryId        🔑         │──N:1──│ categoryName              │
+│ prodCatalogCategoryTypeId🔑         │        │ description               │
+│ fromDate                 🔑         │        │ ...                       │
+│ thruDate                            │        └───────────────────────────┘
+│ sequenceNum                         │
+└──────────────────────────────────────┘
+   Used types in this service:
+     PCCT_PREORDR       → preorderCategoryId
+     PCCT_BACKORDER     → backorderCategoryId
+     PCCT_PREORDR_NOT   → preorderNotCategoryId
+     PCCT_BACKORDER_NOT → backorderNotCategoryId
+```
+
+#### `Product` → `ProductAssoc` (Virtual ↔ Variant)
+```
+Product (Virtual)                  ProductAssoc                    Product (Variant)
+┌──────────────────────┐          ┌──────────────────────────┐   ┌──────────────────────┐
+│ productId        🔑  │────1:N──│ productId         🔑     │   │ productId        🔑  │
+│ productTypeId        │          │ productIdTo       🔑     │──N:1 │ internalName (SKU)│
+│ internalName         │          │ productAssocTypeId🔑     │   │ productTypeId        │
+│ productName          │          │ fromDate          🔑     │   │ ...                  │
+│ isVirtual            │          │ thruDate                 │   └──────────────────────┘
+└──────────────────────┘          │ (type = PRODUCT_VARIANT) │
+                                  └──────────────────────────┘
+```
+
+#### `ProductCategoryMember` — The Central Preorder Data
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  ProductCategoryMember                                            │
+├──────────────────────┬───────────────┬───────────────────────────┤
+│  Field               │ Type          │ Notes                     │
+├──────────────────────┼───────────────┼───────────────────────────┤
+│  productCategoryId🔑 │ id            │ PK + FK → ProductCategory │
+│  productId        🔑 │ id            │ PK + FK → Product         │
+│  fromDate         🔑 │ date-time     │ PK                        │
+│  thruDate            │ date-time     │ When preorder expires     │
+│  promiseDate         │ date-time     │ Estimated delivery date   │
+│  comments            │ comment       │                           │
+│  lastUpdatedStamp    │ date-time     │ Auto-maintained by OFBiz  │
+└──────────────────────┴───────────────┴───────────────────────────┘
+  Key fields for this service:
+     productCategoryId → determines PRE_ORDER vs BACKORDER type
+     thruDate          → used for expiry detection + promise date fallback
+     promiseDate       → primary promise date sent to Shopify
+     lastUpdatedStamp  → used for delta sync detection
+```
+
+#### `SystemProperty` — Sync State Store
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  SystemProperty                                                   │
+├──────────────────────┬───────────────┬───────────────────────────┤
+│  Field               │ Type          │ Notes                     │
+├──────────────────────┼───────────────┼───────────────────────────┤
+│  systemResourceId 🔑 │ id            │ "ShopifyServiceConfig"    │
+│  systemPropertyId 🔑 │ id            │ "{shopId}.PREORDER_CATALOG│
+│                      │               │  .sync.time"              │
+│  systemPropertyValue │ value         │ Last sync timestamp       │
+└──────────────────────┴───────────────┴───────────────────────────┘
+```
+
+---
+
+### 4.3 View Entity: `ProductAssocAndCategoryMember`
+
+> **Definition**: [entitymodel_view.xml:L7709–L7724](file:///home/rachitaarsh/WorkSpace/Sand-box/ofbiz-oms/applications/hwmapps/entitydef/entitymodel_view.xml#L7709-L7724)
+
+This is the **primary query entity** used by the service. It joins `ProductAssoc` (virtual→variant relationship) with `ProductCategoryMember` (category assignment) on the **variant product ID**.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  VIEW: ProductAssocAndCategoryMember                                     │
+│                                                                          │
+│  ┌──────────────┐    JOIN ON                  ┌──────────────────────┐  │
+│  │ ProductAssoc  │    PA.productIdTo =         │ ProductCategoryMember│  │
+│  │ (alias: PA)   │────PCM.productId ──────────│ (alias: PCM)         │  │
+│  └──────────────┘                              └──────────────────────┘  │
+│                                                                          │
+│  Exposed Fields:                                                         │
+│  ┌───────────────────┬─────────┬───────────────────────────────────────┐ │
+│  │ Alias             │ Source  │ Description                           │ │
+│  ├───────────────────┼─────────┼───────────────────────────────────────┤ │
+│  │ productId         │ PA      │ Virtual (parent) product ID           │ │
+│  │ productIdTo       │ PA      │ Variant (child) product ID            │ │
+│  │ productCategoryId │ PCM     │ Preorder/Backorder category           │ │
+│  │ fromDate          │ PCM     │ Category membership start             │ │
+│  │ thruDate          │ PCM     │ Category membership end (expiry)      │ │
+│  │ promiseDate       │ PCM     │ Estimated delivery/promise date       │ │
+│  │ lastUpdatedStamp  │ PCM     │ Last modification timestamp           │ │
+│  └───────────────────┴─────────┴───────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 4.4 Complete Entity Relationship Map
+
+```
+                          ┌─────────────────┐
+                          │  ProductStore    │
+                          │  (productStoreId)│
+                          └────────┬────────┘
+                                   │ 1:N
+                          ┌────────▼────────┐
+                          │ProductStoreCatalog│
+                          │(prodCatalogId)   │
+                          └────────┬────────┘
+                                   │ N:1
+                          ┌────────▼────────┐
+                          │  ProdCatalog     │
+                          │  (prodCatalogId) │
+                          └────────┬────────┘
+                                   │ 1:N
+                        ┌──────────▼──────────┐
+                        │ ProdCatalogCategory  │
+                        │(prodCatalogCategory  │
+                        │    TypeId)           │
+                        └──────────┬──────────┘
+                                   │ N:1
+                        ┌──────────▼──────────┐
+                        │  ProductCategory     │◄──────────────────────────────┐
+                        │  (productCategoryId) │                               │
+                        └──────────┬──────────┘                               │
+                                   │ 1:N                                      │
+                        ┌──────────▼──────────┐                               │
+                        │ProductCategoryMember │                               │
+                        │(productCategoryId,   │                               │
+                        │ productId, fromDate) │                               │
+                        │ + thruDate           │                               │
+                        │ + promiseDate        │                               │
+                        └──────────┬──────────┘                               │
+                                   │ N:1                                      │
+┌───────────────┐     ┌────────────▼────────────┐     ┌───────────────┐       │
+│Product(Virtual)│──1:N│     ProductAssoc         │N:1──│Product(Variant)│       │
+│  (productId)   │     │(productId, productIdTo, │     │  (productId)   │───────┘
+└───────┬───────┘     │ productAssocTypeId,      │     └───────┬───────┘
+        │              │ fromDate)                │             │
+        │              └─────────────────────────┘             │
+        │                                                       │
+        │         ┌────────────────────────────┐               │
+        │         │    ShopifyShopProduct       │               │
+        │         │   (shopId, shopifyProductId)│               │
+        │         │    + productId ─────────────┼───────────────┘
+        │         └──────────┬─────────────────┘
+        │                    │ N:1
+        │         ┌──────────▼─────────────────┐
+        │         │      ShopifyShop            │
+        │         │      (shopId)               │
+        │         └──────────┬─────────────────┘
+        │                    │ 1:1
+        │         ┌──────────▼─────────────────┐
+        └────────►│    ShopifyConfig            │
+                  │    (shopifyConfigId)        │
+                  │    + shopId (FK→ShopifyShop)│
+                  │    + productStoreId         │
+                  └────────────────────────────┘
+
+                  ┌────────────────────────────┐
+                  │   ShopifyMetafield          │
+                  │   (metafieldId)             │
+                  │   + namespace               │
+                  │   + metaKey                 │
+                  └──────────┬─────────────────┘
+                             │ 1:N
+                  ┌──────────▼─────────────────┐
+                  │ShopifyShopProductMetafield  │
+                  │(shopifyProductId,metafieldId)│──► links to ShopifyShopProduct
+                  └────────────────────────────┘
+
+                  ┌────────────────────────────┐
+                  │    SystemProperty           │
+                  │(systemResourceId,           │
+                  │ systemPropertyId)           │   ← Stores last sync timestamp
+                  │ + systemPropertyValue       │
+                  └────────────────────────────┘
+```
+
+---
+
+### 4.5 Entity Data Flow in the Service
+
+> How each entity is **read (R)** or **written (W)** during execution:
+
+| # | Entity | Operation | Step | What is accessed / written |
+|---|---|---|---|---|
+| 1 | `ShopifyConfig` | **R** (cached) | STEP 4 | Look up config by `shopifyConfigId` |
+| 2 | `ShopifyShop` | **R** (cached) | STEP 5 | Get `productStoreId`, `shopId` via `getRelatedOne` |
+| 3 | `SystemProperty` | **R** | STEP 8 | Read last sync time: key=`{shopId}.PREORDER_CATALOG.sync.time` |
+| 4 | `ProductStoreCatalog` | **R** | STEP 11 | Get first catalog for `productStoreId` → `prodCatalogId` |
+| 5 | `ProdCatalogCategory` | **R** | STEP 12 | Resolve 4 category IDs via `CatalogDataSetupUtility` |
+| 6 | `ProductAssocAndCategoryMember` | **R** (iterator) | STEP 14 | **Outer query**: `SELECT DISTINCT productId` (virtual products) |
+| 7 | `ShopifyShopProduct` | **R** | STEP 18 | `ShopifyHelper.getShopifyProductId()` — find parent Shopify GID |
+| 8 | `ProductAssocAndCategoryMember` | **R** (iterator) | STEP 20 | **Inner query**: `SELECT DISTINCT productIdTo` for one virtual product |
+| 9 | `ShopifyShopProductMetafield` + `ShopifyMetafield` | **R** | STEP 24 | `ShopifyHelper.getShopifyMetafieldId()` — existing metafield lookup |
+| 10 | `ProductCategoryMember` | **R** | STEP 25 | Query PCM for specific variant + preorder/backorder categories |
+| 11 | `ProductCategoryMember` | **R** | STEP 26 | Filter by date → determine active vs. inactive preorder status |
+| 12 | `ProductCategory` | **R** | DECISION D/E | `CategoryWorker.isProductInCategory()` — NOT-category exclusion check |
+| 13 | `ShopifyShopProduct` | **R** | STEP 28 | `ShopifyHelper.getAllShopifyProductIds()` — all Shopify variant IDs |
+| 14 | `SystemProperty` | **W** | STEP 38 | Persist `updatedLastSyncTime` for next run |
+
+> [!TIP]
+> The service is **read-heavy** — it only writes to `SystemProperty` (one row). All product/metafield data is written to a **JSONL file** which is then consumed by a separate bulk upload service (`uploadJsonlFileToShopify`).
 
 ---
 
@@ -587,3 +893,4 @@ erDiagram
 3. **NOT Categories**: Products in `PCCT_PREORDR_NOT` or `PCCT_BACKORDER_NOT` are **excluded** from the feed, but only when they are **active** preorders — inactive preorders still get the `DENY` policy sent
 4. **Expired PO Handling**: The delta condition includes items where `thruDate` falls within the sync window, catching POs that expire at midnight even if `lastUpdatedStamp` didn't change
 5. **Inventory Policy**: Active preorder → `CONTINUE` (allow overselling); Inactive → `DENY` (stop selling at 0 stock)
+
