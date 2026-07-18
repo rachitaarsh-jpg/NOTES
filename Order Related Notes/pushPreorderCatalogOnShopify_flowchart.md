@@ -1,10 +1,5 @@
 # 📊 Detailed Flowchart — `pushPreorderCatalogOnShopify`
 
-> **Source**: [ProductServices.java (L59–L245)](file:///home/rachitaarsh/WorkSpace/Sand-box/ofbiz-oms/applications/shopify-connector/src/main/java/co/hotwax/shopify/graphQL/ProductServices.java#L59-L245)  
-> **Service Definition**: [services_graphql.xml (L109–L123)](file:///home/rachitaarsh/WorkSpace/Sand-box/ofbiz-oms/applications/shopify-connector/servicedef/services_graphql.xml#L109-L123)
-
----
-
 ## 1. Service Contract
 
 | Attribute | Type | Mode | Default | Description |
